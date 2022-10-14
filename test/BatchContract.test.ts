@@ -94,7 +94,7 @@ describe("BatchContract", () => {
     console.log("getClaimLists: ", await batchContract.getClaimLists());
   });
 
-  it.skip("claimedToken", async () => {
+  it("claimedToken", async () => {
     const getClaimLists = await batchContract.getClaimLists();
     for (const claimList of getClaimLists) {
       expect(claimList.claimerAddress).to.equal(address1.address);
@@ -115,7 +115,7 @@ describe("BatchContract", () => {
     }
   });
 
-  it("batchTransfer constructor", async () => {
+  it("batchTransfer constructor transfer", async () => {
     await batchContract.balanceOf(owner.address, 1);
 
     await batchTransfer.transfer();
