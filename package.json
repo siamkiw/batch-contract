@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx hardhat test",
+    "test": "npx hardhat test --network localhost",
     "compile": "npx hardhat compile",
     "deploy:localhost": "npx hardhat run --network localhost",
     "console:localhost": "npx hardhat console --network localhost"
