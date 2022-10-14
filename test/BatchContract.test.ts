@@ -125,4 +125,55 @@ describe("BatchContract", () => {
     );
     expect(balanceOfResultAfter).to.equal(101);
   });
+
+  it("createBatch", async () => {
+    await batchTransfer.createBatch(batchContract.address, {
+      ids: [1, 2, 3],
+      amounts: [10, 10, 10],
+      claimedId: 4,
+      claimedAmount: 1,
+    });
+
+    await batchTransfer.createBatch(batchContract.address, {
+      ids: [2, 3],
+      amounts: [10, 10],
+      claimedId: 4,
+      claimedAmount: 2,
+    });
+
+    const getBatchListsResult = await batchTransfer.getBatchLists(
+      batchContract.address
+    );
+
+    const batchTransferIds1 = [
+      ethers.BigNumber.from(1),
+      ethers.BigNumber.from(2),
+      ethers.BigNumber.from(3),
+    ];
+    const batchTransferAmounts1 = [
+      ethers.BigNumber.from(10),
+      ethers.BigNumber.from(10),
+      ethers.BigNumber.from(10),
+    ];
+
+    expect(getBatchListsResult.length).to.equal(2);
+    expect(getBatchListsResult[0].ids.length).to.equal(
+      getBatchListsResult[0].amounts.length
+    );
+    expect(getBatchListsResult[0].batchId).to.equal(0);
+    expect(getBatchListsResult[0].claimedId).to.equal(4);
+    expect(getBatchListsResult[0].claimedAmount).to.equal(1);
+
+    for (const index in getBatchListsResult[0].ids) {
+      expect(getBatchListsResult[0].ids[index]).to.equal(
+        batchTransferIds1[index]
+      );
+    }
+
+    for (const index in getBatchListsResult[0].amounts) {
+      expect(getBatchListsResult[0].amounts[index]).to.equal(
+        batchTransferAmounts1[index]
+      );
+    }
+  });
 });
