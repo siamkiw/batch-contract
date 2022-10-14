@@ -30,6 +30,14 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
     mapping(address => mapping(uint256 => BatchList)) private batchLists;
     mapping(address => Counters.Counter) private batchListIndex;
 
+    event CreateBatch(
+        uint256 indexed batchId,
+        uint256[] ids,
+        uint256[] amounts,
+        uint256 claimedId,
+        uint256 claimedAmount
+    );
+
     constructor(address _batchContract) {
         batchAddress = _batchContract;
     }
@@ -64,6 +72,15 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
         batchLists[_batchAddress][index] = batchList;
 
         batchListIndex[_batchAddress].increment();
+
+        emit CreateBatch(
+            batchList.batchId,
+            batchList.ids,
+            batchList.amounts,
+            batchList.claimedId,
+            batchList.claimedAmount
+        );
+        
     }
 
     function getBatchLists(address _batchAddress)

@@ -2,7 +2,11 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, Contract, ContractFactory } from "ethers";
 import { ethers } from "hardhat";
-import { BatchContract, BatchTransfer } from "../typechain-types";
+import {
+  BatchContract,
+  BatchTransfer,
+  BatchTransfer__factory,
+} from "../typechain-types";
 require("chai").use(require("chai-as-promised")).should();
 
 describe("BatchContract", () => {
@@ -134,12 +138,19 @@ describe("BatchContract", () => {
       claimedAmount: 1,
     });
 
-    await batchTransfer.createBatch(batchContract.address, {
-      ids: [2, 3],
-      amounts: [10, 10],
-      claimedId: 4,
-      claimedAmount: 2,
-    });
+    const createBatchResult = await batchTransfer.createBatch(
+      batchContract.address,
+      {
+        ids: [2, 3],
+        amounts: [10, 10],
+        claimedId: 4,
+        claimedAmount: 2,
+      }
+    );
+
+    await expect(createBatchResult)
+      .to.emit(batchTransfer, "CreateBatch")
+      .withArgs(1, [2, 3], [10, 10], 4, 2);
 
     const getBatchListsResult = await batchTransfer.getBatchLists(
       batchContract.address
