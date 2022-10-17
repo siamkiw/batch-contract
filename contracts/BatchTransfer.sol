@@ -3,14 +3,14 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./IBatchContract.sol";
+import "hardhat/console.sol";
 
 contract BatchTransfer is ReentrancyGuard, Ownable {
     using Counters for Counters.Counter;
-    // Counters.Counter private batchListIndex;
 
     address private batchAddress;
+    address private receiver;
 
     struct CreateBatchList {
         uint256[] ids;
@@ -31,6 +31,7 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
     mapping(address => Counters.Counter) private batchListIndex;
 
     event CreateBatch(
+        address indexed batchAddress,
         uint256 indexed batchId,
         uint256[] ids,
         uint256[] amounts,
@@ -38,8 +39,20 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
         uint256 claimedAmount
     );
 
-    constructor(address _batchContract) {
+    event ClaimBatch(
+        address batchAddress,
+        address sender,
+        address receiver,
+        uint256 indexed batchId,
+        uint256[] ids,
+        uint256[] amounts,
+        uint256 claimedId,
+        uint256 claimedAmount
+    );
+
+    constructor(address _batchContract, address _receiver) {
         batchAddress = _batchContract;
+        receiver = _receiver;
     }
 
     function createBatch(
@@ -49,6 +62,10 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
         require(
             _batchList.ids.length == _batchList.amounts.length,
             "BatchTransfer: length of ids and amounts is not equal"
+        );
+        require(
+            _batchList.ids.length != 0 && _batchList.amounts.length != 0,
+            "BatchTransfer: length of ids and amounts must not be 0"
         );
         require(
             _batchList.claimedAmount > 0,
@@ -74,13 +91,13 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
         batchListIndex[_batchAddress].increment();
 
         emit CreateBatch(
+            _batchAddress,
             batchList.batchId,
             batchList.ids,
             batchList.amounts,
             batchList.claimedId,
             batchList.claimedAmount
         );
-        
     }
 
     function getBatchLists(address _batchAddress)
@@ -103,6 +120,67 @@ contract BatchTransfer is ReentrancyGuard, Ownable {
         }
 
         return items;
+    }
+
+    function getBatch(address _batchAddress, uint batchId)
+        public
+        view
+        returns (BatchList memory)
+    {
+        return batchLists[_batchAddress][batchId];
+    }
+
+    function claimBatch(address _batchAddress, uint256 _batchId) public {
+        BatchList memory batch = getBatch(_batchAddress, _batchId);
+        require(
+            batch.ids.length == batch.amounts.length,
+            "BatchTransfer: length of ids and amounts is not equal"
+        );
+        require(
+            batch.ids.length != 0 && batch.amounts.length != 0,
+            "BatchTransfer: length of ids and amounts must not be 0"
+        );
+
+        address[] memory addresses = new address[](batch.ids.length);
+        for (uint256 i = 0; i < batch.ids.length; i++) {
+            addresses[i] = (_msgSender());
+        }
+
+        uint256[] memory senderBalance = IBatchContract(_batchAddress)
+            .balanceOfBatch(addresses, batch.ids);
+
+        for (uint256 i = 0; i < senderBalance.length; i++) {
+            require(
+                senderBalance[i] >= batch.amounts[i],
+                "BatchTransfer: token balance not enough"
+            );
+        }
+
+        IBatchContract(_batchAddress).safeBatchTransferFrom(
+            msg.sender,
+            receiver,
+            batch.ids,
+            batch.amounts,
+            ""
+        );
+
+        IBatchContract(_batchAddress).mint(
+            msg.sender,
+            batch.claimedId,
+            batch.claimedAmount,
+            ""
+        );
+
+        emit ClaimBatch(
+            _batchAddress,
+            msg.sender,
+            receiver,
+            batch.batchId,
+            batch.ids,
+            batch.amounts,
+            batch.claimedId,
+            batch.claimedAmount
+        );
     }
 
     function transfer() public {
